@@ -1,170 +1,66 @@
 from AirSimClient import *
 from PersistentModules import *
+from Modules import *
 from Commands import *
 import cv2
 import numpy as np
 import time 
 import copy
 
-import asynchat
-import asyncore
-import socket
-import threading
-# Extra Classes
+# setup this in the end in controller when all modules are ready
+class DLogTime:
+    def __init__(self):
+        self.min = float('inf')
+        self.max = 0
+        self.avg = 0
+        self.total = 0
+        self.iters = 0
+        # helper
+        self.last_time = None
 
-# Module
-class ModBase:
+    def __str__(self):
+        return "min={0} max={1} avg={2} total={3} iters={4}".format(self.min, self.max, 
+                                                            self.avg, self.total, self.iters)
+
+class DModLogger:
     def __init__(self, controller):
         self.controller = controller
-        self.enabled = False
+        self.logging_modules = {}
+
+        for k, m in controller.persistent_modules.items():
+            self.logging_modules[k] = DLogTime()
+
+        for k, m in controller.modules.items():
+            self.logging_modules[k] = DLogTime()
+
+        for c in controller.instant_command_classes:
+            self.logging_modules[c.__name__] = DLogTime()
+
+        for c in controller.buffered_command_classes:
+            self.logging_modules[c.__name__] = DLogTime()
+
+    def start(self, name):
+        self.logging_modules[name].last_time = time.time()
     
-    def get_name():
-        raise NotImplementedError
-    
-    def get_client(self):
-        return self.controller.get_client()
+    def stop(self, name):
+        mod = self.logging_modules[name]
+        t_diff = time.time() - mod.last_time
+        if t_diff < mod.min:
+            mod.min = t_diff
+        elif t_diff > mod.max:
+            mod.max = t_diff
 
-    def get_module(self, name):
-        return self.controller.get_module(name)
+        mod.iters += 1
+        mod.avg = (mod.avg * (mod.iters - 1) + t_diff)/mod.iters 
 
-    def get_persistent_module(self, name):
-        return self.controller.get_persistent_module(name)
-    
-    # add more? 
+        mod.last_time = None
+        mod.total += t_diff
 
-    def start(self):
-        self.enabled = True
-    
-    def stop(self):
-        self.enabled = False
-
-    def update(self):
-        raise NotImplementedError
-
-class EngageObject:
-    def __init__(self, id, addr = None):
-        self.addr = addr
-        self.data = b''
-        self.id = id
-        self.status = -1
-        self.done = False
-    
-    def mark_done(self, data = b'Done'):
-        self.data = data
-        self.status = 0
-        self.done = True
-
-    def mark_failed(self, data = b'Failed'):
-        self.data = data
-        self.status = -1
-        self.done = True
-    
-    def mark_cancelled(self, data = b'Cancelled'):
-        self.data = data
-        self.status = -2
-        self.done = True
-
-class ChatHandler(asynchat.async_chat):
-    def __init__(self, sock, addr, callback, chat_room):
-        asynchat.async_chat.__init__(self, sock=sock, map=chat_room)
-        self.addr = addr
-        self.set_terminator(b'\r\nDONEPACKET\r\n')
-        self.buffer = []
-        self.callback = callback
- 
-    def collect_incoming_data(self, data):
-        self.buffer.append(data.decode('ASCII'))
- 
-    def found_terminator(self):
-        msg = ''.join(self.buffer)
-        print('Received: %s'% msg)
-        msg = msg.split(" ")
-
-        engage_object = EngageObject(msg[0], self.addr)
-        #print("engage terminate " + str(engage_object))
-        self.callback(msg[1:], engage_object)
-        self.buffer = []
-
-class ChatServer(asyncore.dispatcher):
-    def __init__(self, host, port, handler, chat_room):
-        asyncore.dispatcher.__init__(self, map=chat_room)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.bind((host, port))
-        self.listen(5)
-        self.res_handler = handler
-        self.chat_room = chat_room
- 
-    def handle_accept(self):
-        pair = self.accept()
-        if pair is not None:
-            sock, addr = pair
-            print('Incoming connection from %s' % repr(addr))
-            handler = ChatHandler(sock, addr, self.res_handler, self.chat_room)
-            handler.push("Hello".encode("ASCII") + b'\r\nDONEPACKET\r\n')
-
-class ModCommandServer(ModBase):
-    def __init__(self, controller, add_command):
-        super().__init__(controller)
-        self.add_command = add_command
-
-        self.engage_object_list = []
-        self.chat_room = {}
-        self.server = None
-        
-    def get_name():
-        return 'command_server'
-
-    def start(self):
-        super().start()
-        if (not self.server):
-            self.server = ChatServer('localhost', 5050, self.process, self.chat_room)
-            self.comm = threading.Thread(target= lambda: (asyncore.loop(map=self.chat_room)))
-            self.comm.daemon = True
-            self.comm.start()
-        print('Serving command API on localhost:5050')
-
-    def stop(self):
-        super().stop()
-        # Note that this only stops update and not disable server
-
-    # Only test method
-    def later(self, msg, engage_object):
-        time.sleep(2)
-        engage_object.data = (str(engage_object.id) + ' done').encode('ASCII')
-        engage_object.status = 0
-        engage_object.done = True
-
-    def process(self, msg, engage_object):
-        #print("process " + str(engage_object))
-        # if server is disabled return msg with fail
-        if (not self.enabled):
-            engage_object.data = b"Failed: ModCommandServer disabled"
-            engage_object.status = -1
-            engage_object.done = True
-            return
-        
-        # else
-        print("Processing command " + str(msg))
-        self.engage_object_list.append(engage_object)
-        # replace here with add_command
-        #threading.Thread(target=lambda: self.later(msg, engage_object)).start()
-        self.add_command(msg, engage_object)
-
-
-    def update(self):
-        delete_list = []
-        for e in self.engage_object_list:
-            if e.done == True:
-                #print(str(e.id) + " done" )
-                for handler in self.chat_room.values():
-                    if hasattr(handler, 'push'):
-                        packetstr = e.id + " " + str(e.status) + " "
-                        packet = packetstr.encode('ASCII') + e.data + b'\r\nDONEPACKET\r\n'
-                        handler.push(packet)
-                delete_list.append(e)
-        for e in delete_list:
-            self.engage_object_list.remove(e)
-
+    def __str__(self):
+        out = ""
+        for k, value in self.logging_modules.items():
+            out += k + ": " + str(value) + "\n"
+        return out
 
 
 # Main Controller
@@ -186,7 +82,7 @@ class Controller:
         for k, mod in self.persistent_modules.items():
             mod.start()
 
-        # Persistent Module Helpers
+        # Persistent Module Helpers TODO Do something about this
         self.persistent_module_helpers = {}
         self.persistent_module_helpers['camera_helper'] = PModHCameraHelper(self.persistent_modules)
 
@@ -208,10 +104,13 @@ class Controller:
         self.instant_command_classes = instant_command_classes
         self.buffered_command_classes = buffered_command_classes
 
+        # Enable logger
+        self.perf_logger = DModLogger(self)
+
         # Test
         self.modules['command_server'].start()
-        #self.persistent_modules['windows_manager'].add_window_by_camera(0, 'scene')
-        #self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth')
+        self.persistent_modules['windows_manager'].add_window_by_camera(0, 'scene')
+        self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth')
         #self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth_perspective')
 
         self.commands_buffer.append(self.get_command_object(['up', '15m'], None))
@@ -269,31 +168,50 @@ class Controller:
     def control(self):
         print(list(self.persistent_modules['mystate'].get_position()))
         t_old = time.time()
+        t_old_log = time.time()
         while(True):
             self._iteration += 1
 
-            if self._iteration % 1000 == 0:
-                d_time = time.time() - t_old
-                print(str(self._iteration) + " " + str(1000/d_time) + " " + 
+            # Print location every 1 seconds
+            d_time = time.time() - t_old
+            if d_time > 1:
+                print(str(self._iteration/d_time) + " " + 
                     str(list(self.persistent_modules['mystate'].get_position())))
+                self._iteration = 0
                 t_old = time.time()
+
+            # Print performance log every 5 seconds
+            d_time = time.time() - t_old_log
+            if d_time > 5:
+                print(self.perf_logger)
+                t_old_log = time.time()
+            
             # Update persistent modules
             for k in self.persistent_modules.keys():
+                self.perf_logger.start(k)
                 self.persistent_modules[k].update()
+                self.perf_logger.stop(k)
 
             # Update persistent module helpers
             for k, mod in self.persistent_module_helpers.items():
-                    mod.update()
+                #self.perf_logger.start(k)
+                mod.update()
+                #self.perf_logger.stop(k)
             
             # Update Modues
             for k, mod in self.modules.items():
                 if mod.enabled:
+                    self.perf_logger.start(k)
                     mod.update()
+                    self.perf_logger.stop(k)
 
             # Update current commands
             cpoplist = []
             for c in self.commands:
+                self.perf_logger.start(type(c).__name__)
                 ans = c.update()
+                self.perf_logger.stop(type(c).__name__)
+
                 if ans == True:
                     # print(list(self.persistent_modules['mystate'].get_position()))
                     cpoplist.append(c)
@@ -319,9 +237,6 @@ class Controller:
             key = cv2.waitKey(1) & 0xFF
             if (key == 27 or key == ord('q') or key == ord('x')):
                 break
-
-
-module_classes = []
 
 ctrl = Controller(persistent_module_classes, persistent_module_helper_classes,
      module_classes, instant_command_classes, buffered_command_classes)

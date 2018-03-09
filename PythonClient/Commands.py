@@ -159,7 +159,7 @@ class CmdRotate(CmdBase):
     def update(self):
         yaw = AirSimClientBase.toEulerianAngle(self.mystate_module.get_orientation())[2]
         # Check if movement is complete or < 0.5 meters distance, anyway thats offset
-        print(abs(self.final_yaw - yaw))
+        #print(abs(self.final_yaw - yaw))
         if abs(self.final_yaw - yaw) < 0.1:
             if self.engage_object != None:
                 self.engage_object.mark_done()
