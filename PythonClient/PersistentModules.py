@@ -67,13 +67,18 @@ class PModHCameraInfo: #PModH => persistent module helper
     
 # Persistent ModuleBase
 class PModBase:
-    def __init__(self, client, persistent_modules):
-        self.client = client
-        self.persistent_modules = persistent_modules
+    def __init__(self, controller):
+        self.controller = controller
 
     def get_name():
         raise NotImplementedError
     
+    def get_client(self):
+        return self.controller.get_client()
+
+    def get_persistent_module(self, name):
+        return self.controller.get_persistent_module(name)
+
     def start(self):
         raise NotImplementedError
 
@@ -84,8 +89,8 @@ class PModBase:
         raise NotImplementedError
 
 class PModConstants(PModBase):
-    def __init__(self, client, persistent_modules):
-        super().__init__(client, persistent_modules)
+    def __init__(self, controller):
+        super().__init__(controller)
         self.standard_speed = 5 # 5m/s
 
     def get_name():
@@ -102,8 +107,8 @@ class PModConstants(PModBase):
 
 # Persistent Module
 class PModMyState(PModBase):
-    def __init__(self, client, persistent_modules):
-        super().__init__(client, persistent_modules)
+    def __init__(self, controller):
+        super().__init__(controller)
         self._state = MultirotorState()
     
     def get_name():
@@ -113,7 +118,7 @@ class PModMyState(PModBase):
         pass # not required
 
     def update(self):
-        self._state = self.client.getMultirotorState()
+        self._state = self.get_client().getMultirotorState()
     
     def get_state(self):
         return self._state
@@ -126,8 +131,8 @@ class PModMyState(PModBase):
 
 # Persistent Module 
 class PModCamera(PModBase): # PMod => persistent module
-    def __init__(self, client, persistent_modules):
-        super().__init__(client, persistent_modules)
+    def __init__(self, controller):
+        super().__init__(controller)
         self._cameras = [PModHCameraInfo(i) for i in range(5)]
         self._image_dicts = [PModHCameraInfo.get_camera_type_map() for i in range(5)] + [ImagesInfo(), ]
         self._oldimage_dicts = self._image_dicts
@@ -161,7 +166,7 @@ class PModCamera(PModBase): # PMod => persistent module
         if (len(requests) == 0):
             return
          
-        responses = self.client.simGetImages(requests)
+        responses = self.get_client().simGetImages(requests)
         assert len(responses) == len(requests)
 
         # Process responces and save in respective dicts
@@ -227,15 +232,15 @@ class PModHCameraHelper:
 
 # Dependency Camera Module 
 class PModWindowsManager(PModBase):
-    def __init__(self, client, persistent_modules):
-        super().__init__(client, persistent_modules)
+    def __init__(self, controller):
+        super().__init__(controller)
         self.windows = {}
     
     def get_name():
         return 'windows_manager'
 
     def start(self):
-        self.camera_module = self.persistent_modules['camera']
+        self.camera_module = self.get_persistent_module('camera')
 
     def update(self):
         for k, fun in self.windows.items():
@@ -258,3 +263,6 @@ class PModWindowsManager(PModBase):
 
     def remove_window(self, name):
         self.windows.pop(name, None)
+
+persistent_module_classes = [PModConstants, PModMyState, PModCamera, PModWindowsManager]
+persistent_module_helper_classes = [PModHCameraHelper,]
