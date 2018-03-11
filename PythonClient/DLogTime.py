@@ -1,3 +1,4 @@
+import time
 # setup this in the end in controller when all modules are ready
 import time
 class DLogTime:

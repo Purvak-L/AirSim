@@ -5,9 +5,7 @@ from Modules import *
 from Commands import *
 
 import cv2
-import numpy as np
-import time 
-import copy
+import time
 
 # Main Controller
 class Controller:
@@ -112,6 +110,13 @@ class Controller:
             self.commands.append(cmd)
         return True
 
+    def flist_repr(l):
+        assert type(l) == list
+        ans = '['
+        for i in l:
+            ans += ' {0:.3f}'.format(i)
+        return ans + ']'
+
     def control(self):
         print(list(self.persistent_modules['mystate'].get_position()))
         t_old = time.time()
@@ -122,8 +127,9 @@ class Controller:
             # Print location every 1 seconds
             d_time = time.time() - t_old
             if d_time > 1:
-                print(str(self._iteration/d_time) + " " + 
-                    str(list(self.persistent_modules['mystate'].get_position())))
+                print('{0:.2f}'.format(self._iteration/d_time) + " " + 
+                    Controller.flist_repr(list(self.persistent_modules['mystate'].get_position())) + 
+                    str(self.persistent_modules['intent_provider']))
                 self._iteration = 0
                 t_old = time.time()
 
