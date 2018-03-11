@@ -2,7 +2,9 @@ import asynchat
 import asyncore
 import socket
 import threading
-
+import math
+import cv2
+import numpy as np 
 # Module Base class
 class ModBase:
     def __init__(self, controller):
@@ -156,6 +158,165 @@ class ModCommandServer(ModBase):
         for e in delete_list:
             self.engage_object_list.remove(e)
 
+class ModDenseFlow(ModBase):
+    def __init__(self, controller):
+        super().__init__(controller)
+        self.first_gray = None
+        self.second_frame = None
+        self.directions = []
+        self.vector_image = np.ones([144,256])
+        self.vector_x = 0.0
+        self.vector_y = 0.0
+        self.subscribers = list()
 
+    
+    def get_name():
+        return "dense_flow" 
+    
+    def _draw_flow(self,img, flow, step=16):
+        self.vector_x = 0.0
+        self.vector_y = 0.0
+        img_copy = img.copy()
+        h, w = img.shape[:2]
+        y, x = np.mgrid[step/2:h:step, step/2:w:step].reshape(2,-1).astype(int)
+        fx, fy = flow[y,x].T
+        lines = np.vstack([x, y, x+fx, y+fy]).T.reshape(-1, 2, 2)
+        lines = np.int32(lines + 0.5)
+        cv2.polylines(img_copy, lines, True, (0, 255, 0))
+        
+        
+        for (x1, y1), (x2, y2) in lines:
+            self.directions.append([x1,y1, math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1))])
+            self.vector_x += -1*np.sign(x2-x1)*abs(x2-x1)
+            self.vector_y += np.sign(y2-y1)*abs(y2-y1)
+            cv2.circle(img_copy, (x1, y1), 1, (0, 0, 255), -1)
+            cv2.circle(img_copy, (x2, y2), 1, (255, 0, 0), -1)
+        self.vector_x = self.vector_x * 16 / len(lines)
+        self.vector_y = self.vector_y * 9 / len(lines)
+        return img_copy
+    
+    # def subscribe(self, name):
+    #     self.subscribers.append(name)
+    
+    # def unsubscribe(self, name):
+    #     self.subscribers.remove(name)
+
+    def start(self):
+        super().start()
+        self.mystate_module = self.get_persistent_module('mystate')
+        self.camera_module = self.get_persistent_module('camera')
+        self.camera_module.get_camera(0).add_image_type('scene')
+        self.get_persistent_module('windows_manager').add_window("Flow",lambda:self.vector_image)
+    
+    def _reset_state(self):
+        self.first_gray = None
+        self.vector_image = np.zeros([144,256])
+        self.vector_x = 0.0
+        self.vector_y = 0.0
+    
+    def update(self):
+        # if len(self.subscribers) == 0:
+        #     return
+        l_velocity = self.mystate_module.get_state().kinematics_true.linear_velocity
+        a_velocity = self.mystate_module.get_state().kinematics_true.angular_velocity
+        v_abs = l_velocity.x_val*l_velocity.x_val + l_velocity.y_val*l_velocity.y_val + l_velocity.z_val*l_velocity.z_val 
+        a_abs = a_velocity.x_val*a_velocity.x_val + a_velocity.y_val*a_velocity.y_val + a_velocity.z_val*a_velocity.z_val
+        if v_abs < 1:
+            self._reset_state()    
+        if self.first_gray is None:
+            self.first_gray = cv2.cvtColor(self.camera_module.get_image(0,'scene').image_data,cv2.COLOR_BGR2GRAY)
+            return 
+        self.second_frame = self.camera_module.get_image(0,'scene').image_data
+        gray = cv2.cvtColor(self.second_frame,cv2.COLOR_BGR2GRAY)
+        #flow = cv2.calcOpticalFlowFarneback(self.first_gray, gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+        flow = cv2.calcOpticalFlowFarneback(self.first_gray, gray, None, 0.5, 1, 3, 15, 3, 5, 0)
+        #flow = cv2.calcOpticalFlowFarneback(prev_gray,gray,0.5,1,3,15,3,5,1)
+        self.first_frame = gray
+        del self.directions[:]
+        self.vector_image = self._draw_flow(self.second_frame,flow)
+
+class ModObstacleAvoidance(ModBase):
+    def __init__(self, controller):
+        super().__init__(controller)
+        self.depth_frame = np.zeros([256,144])
+        self.frame = np.zeros([256,144])
+        self.collision_box = None
+        self.proximity_threshold = 1
+        self.emergency_threshold = 0.5
+        self.collision_threshold = 0.1
+        self.dist_val = 0.0
+        self.dense_subscribed = False
+        self.destination = [10,10,-10]
+        self.current_position = [0,0,-10]
+        self.force_x = 0
+        self.force_y = 0
+        self.force_z = 0
+    
+    def get_name():
+        return "obstacle_avoidance"
+    
+    def start(self):
+        super().start()
+        self.dense = self.get_module('dense_flow')
+        self.camera_module = self.get_persistent_module('camera')
+        self.camera_module.get_camera(0).add_image_type('depth')
+        self.camera_module.get_camera(0).add_image_type('scene')
+        self.get_persistent_module('windows_manager').add_window("Depth Map",lambda:self.depth_frame)
+        self.get_persistent_module('windows_manager').add_window("Map",lambda:self.frame)
+        self.shape_frame = self.frame.shape
+        self.collision_box = [ [2*self.shape_frame[0]//5, 2*self.shape_frame[1]//5],
+                                [3*self.shape_frame[0]//5, 3*self.shape_frame[1]//5]]
+    
+    def update(self):
+        self.depth_frame = self.camera_module.get_image(0,'depth').image_data
+        self.frame = self.camera_module.get_image(0,'scene').image_data
+        
+        val = np.min(np.min(self.depth_frame[self.collision_box[0][1]:self.collision_box[1][1], self.collision_box[0][0]:self.collision_box[1][0]], axis = 1))
+        # if val < self.proximity_threshold and self.dense_subscribed == False:
+        #     self.dense_subscribed = True
+        #     self.dense.subscribe(ModObstacleAvoidance.get_name())
+        # elif self.dense_subscribed and val > self.proximity_threshold:
+        #     self.dense.unsubscribe(ModObstacleAvoidance.get_name())
+        #     self.dense_subscribed = False            
+        # debug
+        self.force_y = 10
+        self.force_z = self.destination[2] - self.current_position[2]
+        print(self.dense.vector_x)
+        print(self.dense.vector_y)
+        print("--------------------------------")
+        #val = np.average(self.depth_frame[self.collision_box[0][1]:self.collision_box[1][1], self.collision_box[0][0]:self.collision_box[1][0]])
+        if val <= self.proximity_threshold and val > self.emergency_threshold: 
+            self.force_x = self.dense.vector_x
+            self.force_z += self.dense.vector_y
+        elif val <= self.emergency_threshold and val > self.collision_threshold:
+            self.force_x = self.dense.vector_x
+            self.force_z += self.dense.vector_y
+            self.force_y *= 0.5
+        elif val <= self.collision_threshold:
+            self.force_x = self.dense.vector_x
+            self.force_z += self.dense.vector_y
+            self.force_y = 0
+            pass
+        else:
+            # re-orient the yaw
+            self.force_y = 10
+            self.force_x = 0
+            self.force_z = (self.destination[2] - self.current_position[2])
+            pass
+        # img = self.frame.copy()    
+        # cv2.rectangle(img,(2*self.shape_frame[0]//5,2*self.shape_frame[1]//5),(3*self.shape_frame[0]//5,3*self.shape_frame[1]//5),(0, 0, 255),4)
+        # cv2.line(img,(int(img.shape[1]/2),int(img.shape[0]/2)), ( int(img.shape[1]//2) + int(self.force_x),int(img.shape[0]//2)), (0,0,255), 3)
+        # cv2.line(img,(int(img.shape[1]//2),int(img.shape[0]//2)), (int(img.shape[1]//2) ,int(img.shape[0]//2 + self.force_z)) , (0,255,255), 3)
+        # cv2.putText(img, str(val),(10,50),cv2.FONT_HERSHEY_SIMPLEX,1, (0,0,255),1,cv2.LINE_AA)
+        # cv2.imshow("bbox",img)
+        #print(val)
+        img = self.frame.copy()
+        cv2.putText(img, str(val),(10,50),cv2.FONT_HERSHEY_SIMPLEX,1, (0,0,255),1,cv2.LINE_AA)
+        cv2.rectangle(img,(2*self.shape_frame[0]//5,2*self.shape_frame[1]//5),(3*self.shape_frame[0]//5,3*self.shape_frame[1]//5),(0, 0, 255),4)
+        cv2.line(img,(int(img.shape[1]/2),int(img.shape[0]/2)), ( int(img.shape[1]//2) + int(self.dense.vector_x),int(img.shape[0]//2)), (0,0,255), 3)
+        cv2.line(img,(int(img.shape[1]//2),int(img.shape[0]//2)), (int(img.shape[1]//2) ,int(img.shape[0]//2 + self.dense.vector_y)) , (0,255,255), 3)
+        cv2.imshow("bbox",img)
+        #print(self.mystate_module.get_state())
+        #self.controller.client.moveToPosition(self.destination[0],self.destination[1],self.destination[2],3)
 # TODO Add new Modules below this line
-module_classes = []
+module_classes = [ModDenseFlow, ModObstacleAvoidance]
