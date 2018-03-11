@@ -1,4 +1,5 @@
 from AirSimClient import *
+from PersistentModules import *
 # CmdBase 
 class CmdBase:
     def __init__(self, controller, line, engage_object):
@@ -33,6 +34,7 @@ class CmdBase:
 # 'down [float(m/s)]'
 # 'left [float(m/s)]'
 # 'right [float(m/s)]'
+# Uses Intent, assumes that current intent is hover and directly overrides
 class CmdMove(CmdBase):
     def __init__(self, controller, line, engage_object = None):
         super().__init__(controller, line, engage_object)
@@ -50,6 +52,7 @@ class CmdMove(CmdBase):
 
     def start(self):
         self.mystate_module = self.get_persistent_module('mystate')
+        self.intent_provider_module = self.get_persistent_module('intent_provider')
         locationVec = list(self.mystate_module.get_position())
         offset = [0, 0, 0]
         #print(locationVec)
@@ -79,6 +82,9 @@ class CmdMove(CmdBase):
         self.final_location = locationVec
         #print(self.final_location)
 
+        # Update intent
+        self.intent_provider_module.submit_intent(CmdMove.__name__, PModHIntents.MOVE, self.final_location)
+
         # Note that this call is cancellable if other movement related call is called
         self.get_client().moveToPosition(self.final_location[0], self.final_location[1], self.final_location[2],
             self.constants_module.standard_speed, 0)
@@ -88,6 +94,8 @@ class CmdMove(CmdBase):
         # Check if movement is complete or < 0.5 meters distance, anyway thats offset
         if ((self.final_location[0] - locationVec[0])**2 + (self.final_location[1] - locationVec[1])**2
             + (self.final_location[2] - locationVec[2])**2)**(1/2) < 0.5:
+            # mark intent as complete
+            self.intent_provider_module.mark_as_complete(CmdMove.__name__) 
             #print("inside " + str(self.engage_object))
             if self.engage_object != None:
                 self.engage_object.mark_done()
@@ -95,9 +103,13 @@ class CmdMove(CmdBase):
         return False
         
     def can_process(line):
-        if line[0] in ['forward', 'backward', 'up', 'down', 'left', 'right']:
-            return True
-        return False
+        try:
+            if (line[0] in ['forward', 'backward', 'up', 'down', 'left', 'right'] and 
+                line[1][-1] in ['m', 's'] and type(float(line[1][:-1])) is float):
+                return True
+            return False
+        except:
+            return False
 
 # Cmd
 # move float float float
@@ -111,6 +123,9 @@ class CmdMoveToPoint(CmdBase):
     def start(self):
         self.mystate_module = self.get_persistent_module('mystate')
         self.constants_module = self.get_persistent_module('constants')
+        self.intent_provider_module = self.get_persistent_module('intent_provider')
+
+        self.intent_provider_module.submit_intent(CmdMoveToPoint.__name__, PModHIntents.MOVE, self.final_location)
         # Note that this call is cancellable if other movement related call is called
         self.get_client().moveToPosition(self.final_location[0], self.final_location[1], self.final_location[2],
             self.constants_module.standard_speed, 0)
@@ -120,16 +135,19 @@ class CmdMoveToPoint(CmdBase):
         # Check if movement is complete or < 0.5 meters distance, anyway thats offset
         if ((self.final_location[0] - locationVec[0])**2 + (self.final_location[1] - locationVec[1])**2
             + (self.final_location[2] - locationVec[2])**2)**(1/2) < 0.5:
+            self.intent_provider_module.mark_as_complete(CmdMoveToPoint.__name__)
             if self.engage_object != None:
                 self.engage_object.mark_done()
             return True
         return False
 
     def can_process(line):
-        if line[0] in ['move'] and type(float(line[1]) + float(line[2]) + float(line[3])) is float:
-            return True
-        return False
-
+        try:
+            if line[0] in ['move'] and type(float(line[1]) + float(line[2]) + float(line[3])) is float:
+                return True
+            return False
+        except:
+            return False
 # Cmd
 # turn left deg
 # turn right deg
@@ -141,9 +159,10 @@ class CmdRotate(CmdBase):
     def start(self):
         self.mystate_module = self.get_persistent_module('mystate')
         self.constants_module = self.get_persistent_module('constants')
-        self.error_params = False
+        self.intent_provider_module = self.get_persistent_module('intent_provider')
 
-        yaw = AirSimClientBase.toEulerianAngle(self.mystate_module.get_orientation())[2]
+        # Note here we get yaw in radians but later we set it in deg
+        pitch, roll, yaw = AirSimClientBase.toEulerianAngle(self.mystate_module.get_orientation())
         delta = float(self.line[2])*3.14/180
         if self.line[1] == 'left':
             yaw -= delta
@@ -153,6 +172,8 @@ class CmdRotate(CmdBase):
             yaw = delta
 
         self.final_yaw = yaw
+
+        self.intent_provider_module.submit_intent(CmdMoveToPoint.__name__, PModHIntents.ROTATE, [pitch, roll, yaw])
         # Note that this call is cancellable if other movement related call is called
         self.get_client().rotateToYaw(self.final_yaw * 180 / 3.14, 0) # note that this fun uses in degrees (inconsistency)
 
@@ -161,6 +182,7 @@ class CmdRotate(CmdBase):
         # Check if movement is complete or < 0.5 meters distance, anyway thats offset
         #print(abs(self.final_yaw - yaw))
         if abs(self.final_yaw - yaw) < 0.1:
+            self.intent_provider_module.mark_as_complete(CmdMoveToPoint.__name__)
             if self.engage_object != None:
                 self.engage_object.mark_done()
             return True

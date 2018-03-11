@@ -1,6 +1,9 @@
 from AirSimClient import *
 import copy
 import cv2
+
+from enum import Enum
+
 class Image:
     def __init__(self, image_data, timestamp, camera_position, camera_orientation):
         self.image_data = image_data # will be np.array in form of bgra
@@ -110,6 +113,7 @@ class PModMyState(PModBase):
     def __init__(self, controller):
         super().__init__(controller)
         self._state = MultirotorState()
+        self.collided = False
     
     def get_name():
         return 'mystate'
@@ -119,6 +123,9 @@ class PModMyState(PModBase):
 
     def update(self):
         self._state = self.get_client().getMultirotorState()
+        if self._state.collision.has_collided == True:
+            self.collided = True
+            print("Collision: with {0}".format(str(self._state.collision.object_name)))
     
     def get_state(self):
         return self._state
@@ -264,5 +271,60 @@ class PModWindowsManager(PModBase):
     def remove_window(self, name):
         self.windows.pop(name, None)
 
-persistent_module_classes = [PModConstants, PModMyState, PModCamera, PModWindowsManager]
+# Edit to add more intents
+class PModHIntents(Enum):
+    MOVE = 1,
+    ROTATE = 2,
+    HOVER = 3,
+    UNKNOWN = -1
+
+class PModIntentProvider(PModBase):
+    def __init__(self, controller):
+        super().__init__(controller)
+        self.intent = PModHIntents.UNKNOWN
+        self.params = []
+        self.intent_controller = None
+        self.time = None
+
+    def get_name():
+        return "intent_provider"
+
+    def submit_intent(self, name, intent, params):
+        assert type(intent) == PModHIntents
+        self.intent_controller = name
+        self.intent = intent
+        self.params = params
+        self.time = time.time()
+
+    # Only intent submitter can mark as complete
+    # Others can override by submitting new intent
+    # Note this auto puts drone in HOVER intent state so caller should make 
+    # sure that drone is trying to/will try to hover while calling this 
+    def mark_as_complete(self, name):
+        if self.intent_controller == name:
+            self.intent = PModHIntents.HOVER
+            self.intent_controller = None
+            self.params = []
+            self.time = time.time()
+
+    def flist_repr(l):
+        assert type(l) == list
+        ans = '['
+        for i in l:
+            ans += ' {0:.3f}'.format(i)
+        return ans + ']'
+
+    def __str__(self):
+        return "{0} {1} {2}".format(self.intent, PModIntentProvider.flist_repr(self.params), self.intent_controller)
+
+    def start(self):
+        pass
+    
+    def update(self):
+        pass
+    
+    def stop(self):
+        pass
+
+persistent_module_classes = [PModConstants, PModMyState, PModCamera, PModWindowsManager, PModIntentProvider]
 persistent_module_helper_classes = [PModHCameraHelper,]
