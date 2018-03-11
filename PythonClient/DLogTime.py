@@ -1,3 +1,4 @@
+import time
 # setup this in the end in controller when all modules are ready
 class DLogTime:
     def __init__(self):
