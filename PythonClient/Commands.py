@@ -173,8 +173,8 @@ class CmdRotate(CmdBase):
         if (self.line[1] in ['left', 'right', 'to']):
             delta = float(self.line[2])*3.14/180
             if self.line[1] == 'left':
-                self.full_rate -= 1
-                self.low_rate -= 1
+                self.full_rate *= -1
+                self.low_rate *= -1
                 yaw -= delta
             elif self.line[1] == 'right':
                 yaw += delta
@@ -264,8 +264,10 @@ class CmdModule(CmdBase):
         except: # some error only if command not proper
             return False
 
-
-
+# Cmd
+# For Tracker Module
+class CmdTrackerBB(CmdBase):
+    pass
 
 # Cmd
 # camera
