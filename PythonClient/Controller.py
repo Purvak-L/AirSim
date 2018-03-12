@@ -32,7 +32,6 @@ class Controller:
 
         # Modules 
         self.modules = {}
-        self.modules[ModCommandServer.get_name()] = ModCommandServer(self, self.add_command)
 
         for c in module_classes:
             self.modules[c.get_name()] = c(self)

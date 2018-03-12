@@ -94,9 +94,9 @@ class ChatServer(asyncore.dispatcher):
             handler.push("Hello".encode("ASCII") + b'\r\nDONEPACKET\r\n')
 
 class ModCommandServer(ModBase):
-    def __init__(self, controller, add_command):
+    def __init__(self, controller):
         super().__init__(controller)
-        self.add_command = add_command
+        self.add_command = self.controller.add_command
 
         self.engage_object_list = []
         self.chat_room = {}
@@ -158,5 +158,6 @@ class ModCommandServer(ModBase):
         for e in delete_list:
             self.engage_object_list.remove(e)
 
+
 # TODO Add new Modules below this line
-module_classes = []
+module_classes = [ModCommandServer]
