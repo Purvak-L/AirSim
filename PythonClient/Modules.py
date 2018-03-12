@@ -101,6 +101,9 @@ class ModCommandServer(ModBase):
         self.engage_object_list = []
         self.chat_room = {}
         self.server = None
+
+        # Auto start as will be needing from start
+        self.start()
         
     def get_name():
         return 'command_server'
@@ -158,6 +161,21 @@ class ModCommandServer(ModBase):
         for e in delete_list:
             self.engage_object_list.remove(e)
 
+class ModTracker(ModBase):
+    def __init__(self, controller):
+        super().__init__(controller)
+
+    def get_name():
+        return 'tracker'
+
+    def start(self):
+        pass
+
+    def update(self):
+        pass
+
+    def stop(self):
+        pass
 
 # TODO Add new Modules below this line
 module_classes = [ModCommandServer]
