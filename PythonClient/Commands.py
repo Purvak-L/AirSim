@@ -152,6 +152,7 @@ class CmdMoveToPoint(CmdBase):
 # turn left deg
 # turn right deg
 # turn to deg
+# turn rate deg
 class CmdRotate(CmdBase):
     def __init__(self, controller, line, engage_object = None):
         super().__init__(controller, line, engage_object)
@@ -164,8 +165,11 @@ class CmdRotate(CmdBase):
         self.low_rate = 10
         # Note here we get yaw in radians but later we set it in deg
         pitch, roll, yaw = AirSimClientBase.toEulerianAngle(self.mystate_module.get_orientation())
+        #print("original yaw {0}".format(yaw))
         if yaw < 0:
             yaw = 2 * 3.14 + yaw
+
+        #print("updated yaw {0}".format(yaw))
         if (self.line[1] in ['left', 'right', 'to']):
             delta = float(self.line[2])*3.14/180
             if self.line[1] == 'left':
@@ -175,14 +179,16 @@ class CmdRotate(CmdBase):
             elif self.line[1] == 'right':
                 yaw += delta
             elif self.line[1] == 'to':
-                diff = yaw - delta
                 side = 1 # right side
-                if diff >= 0 and diff < 3.14: # left side
+                if delta > yaw + 3.14 or (yaw - delta < 3.14 and yaw - delta > 0): # left side # consider current yaw is 0 
                     side = -1
                 self.full_rate *= side
                 self.low_rate *= side
                 yaw = delta
-
+            #print("updated 2 yaw {0}".format(yaw))
+            if yaw > 3.14:
+                yaw = -2 * 3.14 + yaw
+            #print("final yaw {0}".format(yaw))
             self.final_yaw = yaw
             self.intent_provider_module.submit_intent(CmdMoveToPoint.__name__, 
                             PModHIntents.ROTATE, [pitch, roll, yaw])
@@ -199,7 +205,7 @@ class CmdRotate(CmdBase):
             # Check if movement is complete or < 0.1 angle distance, anyway thats offset
             # dist to angle
             dist = min(abs(self.final_yaw - yaw), 2 * 3.14 - abs(self.final_yaw - yaw))
-            print('{0} {1} {2}'.format(self.final_yaw, yaw, dist))
+            #print('{0} {1} {2}'.format(self.final_yaw, yaw, dist))
             if dist < 0.1:
                 self.get_client().hover()
                 self.intent_provider_module.mark_as_complete(CmdMoveToPoint.__name__)
@@ -224,6 +230,42 @@ class CmdRotate(CmdBase):
             return False
         except: # some error only if command not proper
             return False
+
+
+# Cmd
+# module name on/off
+# has some issues maybe with on off command_server
+class CmdModule(CmdBase):
+    def __init__(self, controller, line, engage_object = None):
+        super().__init__(controller, line, engage_object)
+        
+    def start(self):
+        mod = self.get_module(self.line[1])
+        if mod == None:
+            self.engage_object.mark_failed()
+            return
+        if self.line[2] == 'on':
+            self.engage_object.mark_done(b"Enabled")
+            if not mod.enabled:
+                mod.start()
+        elif self.line[2] == 'off':
+            self.engage_object.mark_done(b"Disabled")
+            if not mod.enabled:
+                mod.stop()
+
+    def update(self):
+        return True
+
+    def can_process(line):
+        try:
+            if line[0] in ['module'] and line[2] in ['on', 'off']:
+                return True
+            return False
+        except: # some error only if command not proper
+            return False
+
+
+
 
 # Cmd
 # camera
@@ -330,7 +372,7 @@ class CmdCancel(CmdBase):
         return False
 
 instant_command_classes = [
-    CmdReset, CmdTakeoff, CmdTakePic, CmdCancel
+    CmdReset, CmdTakeoff, CmdTakePic, CmdCancel, CmdModule
 ]
 buffered_command_classes = [
     CmdMove, CmdMoveToPoint, CmdRotate

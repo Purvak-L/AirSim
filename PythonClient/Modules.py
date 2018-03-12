@@ -143,6 +143,8 @@ class ModCommandServer(ModBase):
 
 
     def update(self):
+        if not self.enabled:
+            return
         delete_list = []
         for e in self.engage_object_list:
             if e.done == True:
@@ -155,7 +157,6 @@ class ModCommandServer(ModBase):
                 delete_list.append(e)
         for e in delete_list:
             self.engage_object_list.remove(e)
-
 
 # TODO Add new Modules below this line
 module_classes = []

@@ -63,10 +63,10 @@ class Controller:
         # End Test
 
     def get_persistent_module(self, name):
-        return self.persistent_modules[name]
+        return self.persistent_modules.get(name)
 
     def get_module(self, name):
-        return self.modules[name]
+        return self.modules.get(name)
     
     def get_client(self):
         return self.client
@@ -127,7 +127,7 @@ class Controller:
             d_time = time.time() - t_old
             if d_time > 1:
                 print('{0:.2f}'.format(self._iteration/d_time) + " " + 
-                    Controller.flist_repr(list(self.persistent_modules['mystate'].get_position())) + 
+                    Controller.flist_repr(list(self.persistent_modules['mystate'].get_position())) + " " +
                     str(self.persistent_modules['intent_provider']))
                 self._iteration = 0
                 t_old = time.time()

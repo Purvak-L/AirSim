@@ -315,7 +315,7 @@ class PModIntentProvider(PModBase):
         return ans + ']'
 
     def __str__(self):
-        return "{0} {1} {2}".format(self.intent, PModIntentProvider.flist_repr(self.params), self.intent_controller)
+        return "{0} {1} {2}".format(str(self.intent)[13:], PModIntentProvider.flist_repr(self.params), self.intent_controller)
 
     def start(self):
         pass
