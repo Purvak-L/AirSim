@@ -250,7 +250,7 @@ class PModWindowsManager(PModBase):
         self.camera_module = self.get_persistent_module('camera')
 
     def update(self):
-        for k, fun in self.windows.items():
+        for k, fun in self.windows.copy().items():
             cv2.imshow(k, fun())
 
     def add_window_by_camera(self, camera_id, image_type):
@@ -315,7 +315,7 @@ class PModIntentProvider(PModBase):
         return ans + ']'
 
     def __str__(self):
-        return "{0} {1} {2}".format(self.intent, PModIntentProvider.flist_repr(self.params), self.intent_controller)
+        return "{0} {1} {2}".format(str(self.intent)[13:], PModIntentProvider.flist_repr(self.params), self.intent_controller)
 
     def start(self):
         pass

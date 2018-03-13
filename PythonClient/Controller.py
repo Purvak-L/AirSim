@@ -32,7 +32,6 @@ class Controller:
 
         # Modules 
         self.modules = {}
-        self.modules[ModCommandServer.get_name()] = ModCommandServer(self, self.add_command)
 
         for c in module_classes:
             self.modules[c.get_name()] = c(self)
@@ -56,17 +55,17 @@ class Controller:
         self.persistent_modules['windows_manager'].add_window_by_camera(0, 'scene')
         self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth')
         #self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth_perspective')
-
-        self.commands_buffer.append(self.get_command_object(['up', '15m'], None))
+        self.commands_buffer.append(self.get_command_object(['up', '5m'], None))
+        self.commands_buffer.append(self.get_command_object(['down', '5m'], None))
         #self.commands_buffer.append(self.get_command_object(['cancel'], None))
 
         # End Test
 
     def get_persistent_module(self, name):
-        return self.persistent_modules[name]
+        return self.persistent_modules.get(name)
 
     def get_module(self, name):
-        return self.modules[name]
+        return self.modules.get(name)
     
     def get_client(self):
         return self.client
@@ -127,14 +126,14 @@ class Controller:
             d_time = time.time() - t_old
             if d_time > 1:
                 print('{0:.2f}'.format(self._iteration/d_time) + " " + 
-                    Controller.flist_repr(list(self.persistent_modules['mystate'].get_position())) + 
+                    Controller.flist_repr(list(self.persistent_modules['mystate'].get_position())) + " " +
                     str(self.persistent_modules['intent_provider']))
                 self._iteration = 0
                 t_old = time.time()
 
             # Print performance log every 5 seconds
             d_time = time.time() - t_old_log
-            if d_time > 5:
+            if d_time > 10:
                 print(self.perf_logger)
                 t_old_log = time.time()
             
@@ -163,10 +162,10 @@ class Controller:
                 self.perf_logger.start(type(c).__name__)
                 ans = c.update()
                 self.perf_logger.stop(type(c).__name__)
-
                 if ans == True:
                     # print(list(self.persistent_modules['mystate'].get_position()))
                     cpoplist.append(c)
+            
             for c in cpoplist:
                 try:
                     self.commands.remove(c)
