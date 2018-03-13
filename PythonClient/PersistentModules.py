@@ -250,7 +250,7 @@ class PModWindowsManager(PModBase):
         self.camera_module = self.get_persistent_module('camera')
 
     def update(self):
-        for k, fun in self.windows.items():
+        for k, fun in self.windows.copy().items():
             cv2.imshow(k, fun())
 
     def add_window_by_camera(self, camera_id, image_type):

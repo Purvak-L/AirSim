@@ -190,11 +190,11 @@ class CmdRotate(CmdBase):
                 yaw = -2 * 3.14 + yaw
             #print("final yaw {0}".format(yaw))
             self.final_yaw = yaw
-            self.intent_provider_module.submit_intent(CmdMoveToPoint.__name__, 
+            self.intent_provider_module.submit_intent(CmdRotate.__name__, 
                             PModHIntents.ROTATE, [pitch, roll, yaw])
         else: # rate
             self.rate = float(self.line[2])
-            self.intent_provider_module.submit_intent(CmdMoveToPoint.__name__, 
+            self.intent_provider_module.submit_intent(CmdRotate.__name__, 
                             PModHIntents.ROTATE, [self.rate])
 
     def update(self):
@@ -208,7 +208,7 @@ class CmdRotate(CmdBase):
             #print('{0} {1} {2}'.format(self.final_yaw, yaw, dist))
             if dist < 0.1:
                 self.get_client().hover()
-                self.intent_provider_module.mark_as_complete(CmdMoveToPoint.__name__)
+                self.intent_provider_module.mark_as_complete(CmdRotate.__name__)
                 if self.engage_object != None:
                     self.engage_object.mark_done()
                 return True

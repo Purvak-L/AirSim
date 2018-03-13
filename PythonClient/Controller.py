@@ -55,8 +55,8 @@ class Controller:
         self.persistent_modules['windows_manager'].add_window_by_camera(0, 'scene')
         self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth')
         #self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth_perspective')
-
-        self.commands_buffer.append(self.get_command_object(['up', '15m'], None))
+        self.commands_buffer.append(self.get_command_object(['up', '5m'], None))
+        self.commands_buffer.append(self.get_command_object(['down', '5m'], None))
         #self.commands_buffer.append(self.get_command_object(['cancel'], None))
 
         # End Test
@@ -133,7 +133,7 @@ class Controller:
 
             # Print performance log every 5 seconds
             d_time = time.time() - t_old_log
-            if d_time > 5:
+            if d_time > 10:
                 print(self.perf_logger)
                 t_old_log = time.time()
             
@@ -162,10 +162,10 @@ class Controller:
                 self.perf_logger.start(type(c).__name__)
                 ans = c.update()
                 self.perf_logger.stop(type(c).__name__)
-
                 if ans == True:
                     # print(list(self.persistent_modules['mystate'].get_position()))
                     cpoplist.append(c)
+            
             for c in cpoplist:
                 try:
                     self.commands.remove(c)

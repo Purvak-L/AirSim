@@ -11,7 +11,7 @@ class DLogTime:
         self.last_time = None
 
     def __str__(self):
-        return "min={0} max={1} avg={2} total={3} iters={4}".format(self.min, self.max, 
+        return "min={0:.5f} max={1:.5f} avg={2:.5f} total={3:.5f} iters={4}".format(self.min, self.max, 
                                                             self.avg, self.total, self.iters)
 
 class DModLogger:
@@ -51,5 +51,5 @@ class DModLogger:
     def __str__(self):
         out = ""
         for k, value in self.logging_modules.items():
-            out += k + ": " + str(value) + "\n"
+            out += k + str(value) + "\n"
         return out
