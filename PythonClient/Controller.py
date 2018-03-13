@@ -52,11 +52,12 @@ class Controller:
 
         # Test
         self.modules['command_server'].start()
-        self.persistent_modules['windows_manager'].add_window_by_camera(0, 'scene')
-        self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth')
+        #self.persistent_modules['windows_manager'].add_window_by_camera(0, 'scene')
+        #self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth')
         #self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth_perspective')
         self.commands_buffer.append(self.get_command_object(['up', '5m'], None))
         self.commands_buffer.append(self.get_command_object(['down', '5m'], None))
+        #self.commands_buffer.append(self.get_command_object(['up', '3m'], None))
         #self.commands_buffer.append(self.get_command_object(['cancel'], None))
 
         # End Test
