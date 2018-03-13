@@ -160,6 +160,40 @@ class ModCommandServer(ModBase):
         for e in delete_list:
             self.engage_object_list.remove(e)
 
+class ModSparseFlow(ModBase):
+    def __init__(self, controller):
+        super().__init__(controller)
+        self.frame = np.zeros([144,256])
+        self.feature_image = np.zeros([256,144])
+
+    def _detect_features(self):
+        frame = np.copy(self.frame)
+        #bbox = cv2.selectROI(frame, False)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #roi = frameGray[bbox[1]:(bbox[1]+bbox[3]),bbox[0]:(bbox[0]+bbox[2])]
+
+        surf = cv2.xfeatures2d.SURF_create()
+        surf.setHessianThreshold(0)
+        kps, descs = surf.detectAndCompute(gray, None)
+        frame = cv2.drawKeypoints(gray, kps, None, (255,0,0), 2)
+        return frame, kps
+
+    def get_name():
+        return "sparse_flow" 
+
+    def start(self):
+        super().start()
+        self.mystate_module = self.get_persistent_module('mystate')
+        self.camera_module = self.get_persistent_module('camera')
+        self.camera_module.get_camera(0).add_image_type('scene')
+        self.get_persistent_module('windows_manager').add_window("image",lambda:self.feature_image)
+
+    def update(self):
+        self.frame = self.camera_module.get_image(0, 'scene').image_data
+        self.feature_image, kps = self._detect_features()
+        print(kps)
+
+
 class ModDenseFlow(ModBase):
     def __init__(self, controller):
         super().__init__(controller)
@@ -171,7 +205,6 @@ class ModDenseFlow(ModBase):
         self.vector_y = 0.0
         self.subscribers = list()
 
-    
     def get_name():
         return "dense_flow" 
     
@@ -328,4 +361,4 @@ class ModObstacleAvoidance(ModBase):
         # #print(self.mystate_module.get_state())
         #self.controller.client.moveToPosition(self.destination[0],self.destination[1],self.destination[2],3)
 # TODO Add new Modules below this line
-module_classes = [ModDenseFlow, ModObstacleAvoidance]
+module_classes = [ModDenseFlow, ModObstacleAvoidance, ModSparseFlow]
