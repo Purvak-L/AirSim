@@ -79,7 +79,11 @@ class PModCamera(PModBase): # PMod => persistent module
         return 'camera'
 
     def start(self):
+        super().start()
         pass # Change default camera settings here
+    
+    def stop(self):
+        super().stop()
 
     def update(self):
         self._num_image_iter += 1
@@ -102,10 +106,10 @@ class PModCamera(PModBase): # PMod => persistent module
         # Execute all requests if any
         if (len(requests) == 0):
             return
-         
+        
         responses = self.get_client().simGetImages(requests)
         assert len(responses) == len(requests)
-
+        self.log("Collected {0} images".format(len(responses)))
         # Process responces and save in respective dicts
         for n, res in enumerate(responses):
             i, k = requestsinfo[n]

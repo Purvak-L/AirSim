@@ -26,6 +26,7 @@ class PModIntentProvider(PModBase):
         self.intent = intent
         self.params = params
         self.time = time.time()
+        self.log("Switching to new Intent {0}:{1} by {2} command/module".format(intent, params, name))
 
     # Only intent submitter can mark as complete
     # Others can override by submitting new intent
@@ -37,6 +38,7 @@ class PModIntentProvider(PModBase):
             self.intent_controller = None
             self.params = []
             self.time = time.time()
+            self.log("Marked last intent as complete by {0}, switching to {1}".format(name, self.intent))
 
     def flist_repr(l):
         assert type(l) == list
@@ -49,10 +51,10 @@ class PModIntentProvider(PModBase):
         return "{0} {1} {2}".format(str(self.intent)[13:], PModIntentProvider.flist_repr(self.params), self.intent_controller)
 
     def start(self):
-        pass
+        super().start()
     
     def update(self):
         pass
     
     def stop(self):
-        pass
+        super().stop()

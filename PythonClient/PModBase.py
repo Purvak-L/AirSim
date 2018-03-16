@@ -3,7 +3,7 @@ from AirSimClient import *
 class PModBase:
     def __init__(self, controller):
         self.controller = controller
-
+    
     def get_name():
         raise NotImplementedError
     
@@ -12,12 +12,25 @@ class PModBase:
 
     def get_persistent_module(self, name):
         return self.controller.get_persistent_module(name)
+    
+    def logger(self):
+        return self.logger_module
+
+    def log(self, msg):
+        self.logger().log(type(self).get_name(), msg)
+    
+    def log_error(self, msg):
+        self.logger().log_error(type(self).get_name(), msg)
+
+    def log_warning(self, msg):
+        self.logger().log_warning(type(self).get_name(), msg)
 
     def start(self):
-        raise NotImplementedError
+        self.logger_module = self.get_persistent_module('logger')
+        self.log("Starting..")
 
     def update(self):
         raise NotImplementedError
     
     def stop(self):
-        raise NotImplementedError
+        self.log("Stopping..")

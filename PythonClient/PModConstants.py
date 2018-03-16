@@ -9,10 +9,10 @@ class PModConstants(PModBase):
         return 'constants'
 
     def start(self):
-        pass
+        super().start()
 
     def update(self):
         pass
 
     def stop(self):
-        pass
+        super().stop()
