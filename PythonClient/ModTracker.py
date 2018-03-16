@@ -44,6 +44,7 @@ class ModTracker(ModBase):
 
     def get_name():
         return 'tracker'
+    
 
     def test_bounded_box(self, img):
         print("getting roi")
@@ -65,6 +66,8 @@ class ModTracker(ModBase):
         self.original_corners = new_corners.copy()
         self.status = TrackerStatus.TRACKING
         print("original corners {0}".format(len(self.original_corners)))
+        self.log("Set a new bounding box {0} and found {1} features, status = {2}".format(b_box_corners, 
+                len(self.original_corners), self.status))
 
     def find_distance(self, r1, c1, r2, c2):
         d = (r1 - r2)**2 + (c1 - c2)**2
@@ -87,6 +90,7 @@ class ModTracker(ModBase):
         self.window_manager_module = self.get_persistent_module('windows_manager')
         self.window_manager_module.add_window("Tracking", lambda: self.img)
         self.status = TrackerStatus.STARTED
+        self.log("Started waiting for input")
 
     def update(self):
         # init params if just started
@@ -96,10 +100,12 @@ class ModTracker(ModBase):
             threading.Thread(target=self.test_bounded_box, args=(self.original_sent_img,)).start()
             # Wait for BoundingBox
             self.status = TrackerStatus.UPDATE_WAITING_BB
+            self.log("Sent bounding box request, status = {0}".format(self.status))
             return False
 
         # wait for input of BoundingBox
         if self.status == TrackerStatus.UPDATE_WAITING_BB:
+            self.log("Waiting for bounding box request, status = {0}".format(self.status))
             return False
         
         # current status is tracking
@@ -125,24 +131,25 @@ class ModTracker(ModBase):
                     new_corners[index][0][0] > self.img.shape[1]):
                     tobedel.append(index)
             new_corners_updated = np.delete(new_corners_updated, tobedel, 0)
-            if (len(new_corners_updated) != len(self.old_corners)):
-                print(new_corners_updated)
-                print()
+            # if (len(new_corners_updated) != len(self.old_corners)):
+            #     print(new_corners_updated)
+            #     print()
             
-            for index in range(len(new_corners_updated)):
-                print("{0} {1} {2} {3} {4}".format(new_corners_updated[index][0][0], 
-                    new_corners_updated[index][0][1],
-                    self.img.shape[0],
-                    self.img.shape[1],
-                    self.find_distance(new_corners_updated[index][0][1], 
-                    new_corners_updated[index][0][0], 
-                    int(centroid_row), int(centroid_col))))
-            print()
+            # for index in range(len(new_corners_updated)):
+            #     print("{0} {1} {2} {3} {4}".format(new_corners_updated[index][0][0], 
+            #         new_corners_updated[index][0][1],
+            #         self.img.shape[0],
+            #         self.img.shape[1],
+            #         self.find_distance(new_corners_updated[index][0][1], 
+            #         new_corners_updated[index][0][0], 
+            #         int(centroid_row), int(centroid_col))))
+            # print()
 
             # Lost Tracking Condition
             if len(new_corners_updated) < 1:
                 self.status = TrackerStatus.LOST_TRACK
                 print("OBJECT LOST waiting for tracking again")
+                self.log("Object Lost, status = {0}".format(self.status))
                 return False
             
             #updating old_corners and old_gray

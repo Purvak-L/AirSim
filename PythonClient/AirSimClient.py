@@ -59,6 +59,9 @@ class Vector3r(MsgpackMixin):
         yield self.x_val
         yield self.y_val
         yield self.z_val
+    
+    def __str__(self):
+        return "[{0:.3f} {1:.3f} {2:.3f}]".format(self.x_val, self.y_val, self.z_val)
 
 
 class Quaternionr(MsgpackMixin):
@@ -78,6 +81,9 @@ class Quaternionr(MsgpackMixin):
         yield self.y_val
         yield self.z_val
         yield self.w_val
+
+    def __str__(self):
+        return "[{0:.3f} {1:.3f} {2:.3f} {3:.3f}".format(self.x_val, self.y_val, self.z_val, self.w_val)
 
 class Pose(MsgpackMixin):
     position = Vector3r()

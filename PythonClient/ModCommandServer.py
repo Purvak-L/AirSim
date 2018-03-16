@@ -110,7 +110,8 @@ class ModCommandServer(ModBase):
             return
         
         # else
-        print("Processing command " + str(msg))
+        print("Recieved command " + str(msg))
+        self.log("Recieved command " + str(msg))
         self.engage_object_list.append(engage_object)
         # replace here with add_command
         #threading.Thread(target=lambda: self.later(msg, engage_object)).start()
@@ -123,6 +124,7 @@ class ModCommandServer(ModBase):
         delete_list = []
         for e in self.engage_object_list:
             if e.done == True:
+                self.log("Returning command with id = {0} and data = {1}".format(e.id, e.data))
                 #print(str(e.id) + " done" )
                 for handler in self.chat_room.values():
                     if hasattr(handler, 'push'):

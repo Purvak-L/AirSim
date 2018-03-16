@@ -351,3 +351,4 @@ xcuserdata/
 !*.xcworkspace/contents.xcworkspacedata
 /*.gcno
 
+/PythonClient/Log-*
