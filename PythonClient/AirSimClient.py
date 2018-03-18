@@ -77,10 +77,10 @@ class Quaternionr(MsgpackMixin):
         self.w_val = w_val
 
     def __iter__(self):
+        yield self.w_val
         yield self.x_val
         yield self.y_val
         yield self.z_val
-        yield self.w_val
 
     def __str__(self):
         return "[{0:.3f} {1:.3f} {2:.3f} {3:.3f}]".format(self.w_val, self.x_val, self.y_val, self.z_val)
