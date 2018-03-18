@@ -44,7 +44,7 @@ class DModLogger:
             mod.max = t_diff
 
         mod.iters += 1
-        mod.avg = (mod.avg * (mod.iters - 1) + t_diff)/mod.iters 
+        mod.avg = (mod.avg * (mod.iters - 1) + t_diff) / mod.iters 
 
         mod.last_time = None
         mod.total += t_diff
@@ -52,5 +52,5 @@ class DModLogger:
     def __str__(self):
         out = ""
         for k, value in self.logging_modules.items():
-            out += k + str(value) + "\n"
+            out += k + " " + str(value) + "\n"
         return out

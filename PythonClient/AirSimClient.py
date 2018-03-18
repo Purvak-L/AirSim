@@ -83,7 +83,7 @@ class Quaternionr(MsgpackMixin):
         yield self.w_val
 
     def __str__(self):
-        return "[{0:.3f} {1:.3f} {2:.3f} {3:.3f}".format(self.x_val, self.y_val, self.z_val, self.w_val)
+        return "[{0:.3f} {1:.3f} {2:.3f} {3:.3f}]".format(self.w_val, self.x_val, self.y_val, self.z_val)
 
 class Pose(MsgpackMixin):
     position = Vector3r()
@@ -360,10 +360,10 @@ class AirSimClientBase:
         t5 = math.sin(pitch * 0.5)
 
         q = Quaternionr()
-        q.w_val = t0 * t2 * t4 + t1 * t3 * t5 #w
-        q.x_val = t0 * t3 * t4 - t1 * t2 * t5 #x
-        q.y_val = t0 * t2 * t5 + t1 * t3 * t4 #y
-        q.z_val = t1 * t2 * t4 - t0 * t3 * t5 #z
+        q.w_val = (t0 * t2 * t4 + t1 * t3 * t5) #w
+        q.x_val = (t0 * t3 * t4 - t1 * t2 * t5) #x
+        q.y_val = (t0 * t2 * t5 + t1 * t3 * t4) #y
+        q.z_val = (t1 * t2 * t4 - t0 * t3 * t5) #z
         return q
 
     @staticmethod
