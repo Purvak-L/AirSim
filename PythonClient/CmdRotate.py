@@ -59,14 +59,14 @@ class CmdRotate(CmdBase):
             # dist to angle
             dist = min(abs(self.final_yaw - yaw), 2 * 3.14 - abs(self.final_yaw - yaw))
             #print('{0} {1} {2}'.format(self.final_yaw, yaw, dist))
-            if dist < 0.1:
+            if abs(dist) < 0.1:
                 self.get_client().hover()
                 self.intent_provider_module.mark_as_complete(CmdRotate.__name__)
                 if self.engage_object != None:
                     self.engage_object.mark_done()
                 return True
             # Note that this call is cancellable if other movement related call is called
-            if dist < 0.5:
+            if abs(dist) < 0.5:
                 self.get_client().rotateByYawRate(self.low_rate, 0.5) # note that this fun uses in degrees (inconsistency)
             else: # on full rate
                 self.get_client().rotateByYawRate(self.full_rate, 0.5) # note that this fun uses in degrees (inconsistency)

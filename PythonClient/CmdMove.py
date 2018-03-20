@@ -32,6 +32,7 @@ class CmdMove(CmdBase):
         #print(locationVec)
         # Process command
         yaw = AirSimClientBase.toEulerianAngle(self.mystate_module.get_orientation())[2]
+        #print("yaw is {0} {1} {2}".format(yaw, math.sin(yaw), math.cos(yaw)))
         if self.command == 'up':
             offset[2] -= float(self.distance_param)
         elif self.command == 'down':
@@ -43,10 +44,10 @@ class CmdMove(CmdBase):
             offset[0] -= float(self.distance_param) * math.cos(yaw)
             offset[1] -= float(self.distance_param) * math.sin(yaw)
         elif self.command == 'right':
-            offset[0] += float(self.distance_param) * math.sin(yaw)
+            offset[0] -= float(self.distance_param) * math.sin(yaw)
             offset[1] += float(self.distance_param) * math.cos(yaw)
         elif self.command == 'left':
-            offset[0] -= float(self.distance_param) * math.sin(yaw)
+            offset[0] += float(self.distance_param) * math.sin(yaw)
             offset[1] -= float(self.distance_param) * math.cos(yaw)
 
         # add to location
