@@ -20,7 +20,7 @@ class CmdModule(CmdBase):
                 mod.start()
         elif self.line[2] == 'off':
             self.engage_object.mark_done(b"Disabled")
-            if not mod.enabled:
+            if mod.enabled:
                 mod.stop()
 
     def update(self):

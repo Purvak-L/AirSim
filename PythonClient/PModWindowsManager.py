@@ -41,4 +41,5 @@ class PModWindowsManager(PModBase):
 
     def remove_window(self, name):
         self.windows.pop(name, None)
+        cv2.destroyWindow(name) 
         self.log("Removed a window (if exists): window_name = {0}".format(name))
