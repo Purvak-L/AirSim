@@ -56,9 +56,13 @@ class Controller:
         # Test
         self.persistent_modules['windows_manager'].add_window_by_camera(0, 'scene')
         self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth')
+        self.persistent_modules['windows_manager'].add_window_by_camera(4, 'scene')
         #self.persistent_modules['windows_manager'].add_window_by_camera(0, 'depth_perspective')
         self.commands_buffer.append(self.get_command_object(['up', '5m'], None))
         self.commands_buffer.append(self.get_command_object(['down', '5m'], None))
+        # self.get_module('camera_gimble').start()
+        # self.get_module('camera_gimble').get_camera(4).set_gimble_params(type(self).get_name(), -10, 0, 180)
+        # self.get_module('camera_gimble').get_camera(4).enable_gimble(type(self).get_name())
         #self.commands_buffer.append(self.get_command_object(['up', '3m'], None))
         #self.commands_buffer.append(self.get_command_object(['cancel'], None))
 

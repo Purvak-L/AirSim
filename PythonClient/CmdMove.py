@@ -32,7 +32,7 @@ class CmdMove(CmdBase):
         #print(locationVec)
         # Process command
         yaw = AirSimClientBase.toEulerianAngle(self.mystate_module.get_orientation())[2]
-        print("yaw is {0} {1} {2}".format(yaw, math.sin(yaw), math.cos(yaw)))
+        #print("yaw is {0} {1} {2}".format(yaw, math.sin(yaw), math.cos(yaw)))
         if self.command == 'up':
             offset[2] -= float(self.distance_param)
         elif self.command == 'down':
