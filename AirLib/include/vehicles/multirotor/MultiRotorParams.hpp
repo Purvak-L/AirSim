@@ -7,9 +7,7 @@
 #include "common/Common.hpp"
 #include "RotorParams.hpp"
 #include "sensors/SensorCollection.hpp"
-#include "controllers/DroneControllerBase.hpp"
-
-
+#include "vehicles/multirotor/api/MultirotorApiBase.hpp"
 
 namespace msr { namespace airlib {
 
@@ -51,15 +49,21 @@ public: //types
         //angular coefficient is usually 10X smaller than linear, however we should replace this with exact number
         //http://physics.stackexchange.com/q/304742/14061
         real_T angular_drag_coefficient = linear_drag_coefficient; 
-        real_T restitution = 0.15f;
-        real_T friction = 0.7f;
+        real_T restitution = 0.55f; // value of 1 would result in perfectly elastic collisions, 0 would be completely inelastic.
+        real_T friction = 0.5f;
         EnabledSensors enabled_sensors;
         RotorParams rotor_params;
-
-        uint16_t api_server_port;
     };
 
+
+protected: //must override by derived class
+    virtual void setupParams() = 0;
+    virtual std::unique_ptr<SensorBase> createSensor(SensorBase::SensorType sensor_type) = 0;
+
 public: //interface
+    virtual std::unique_ptr<MultirotorApiBase> createMultirotorApi() = 0;
+
+    virtual ~MultiRotorParams() = default;
     virtual void initialize()
     {
         sensor_storage_.clear();
@@ -68,7 +72,6 @@ public: //interface
         setupParams();
 
         addEnabledSensors(params_.enabled_sensors);
-        controller_ = createController();
     }
 
     const Params& getParams() const
@@ -86,14 +89,6 @@ public: //interface
     const SensorCollection& getSensors() const
     {
         return sensors_;
-    }
-    DroneControllerBase* getController()
-    {
-        return controller_.get();
-    }
-    const DroneControllerBase* getController() const
-    {
-        return controller_.get();
     }
 
     void addEnabledSensors(const EnabledSensors& enabled_sensors)
@@ -121,14 +116,6 @@ public: //interface
         }
         return nullptr;
     }
-
-
-    virtual ~MultiRotorParams() = default;
-
-protected: //must override by derived class
-    virtual void setupParams() = 0;
-    virtual std::unique_ptr<SensorBase> createSensor(SensorBase::SensorType sensor_type) = 0;
-    virtual std::unique_ptr<DroneControllerBase> createController() = 0;
 
 protected: //static utility functions for derived classes to use
 
@@ -216,7 +203,7 @@ protected: //static utility functions for derived classes to use
     }
 
     /// Initialize the rotor_poses given the rotor_count, the arm lengths and the arm angles (relative to forwards vector).
-    /// Also provide the direction you want to spin each rotor and the z-offsetof the rotors relative to the center of gravity.
+    /// Also provide the direction you want to spin each rotor and the z-offset of the rotors relative to the center of gravity.
     static void initializeRotors(vector<RotorPose>& rotor_poses, uint rotor_count, real_T arm_lengths[], real_T arm_angles[], RotorTurningDirection rotor_directions[], real_T rotor_z /* z relative to center of gravity */)
     {
         Vector3r unit_z(0, 0, -1);  //NED frame
@@ -251,7 +238,6 @@ private:
     Params params_;
     SensorCollection sensors_; //maintains sensor type indexed collection of sensors
     vector<unique_ptr<SensorBase>> sensor_storage_; //RAII for created sensors
-    std::unique_ptr<DroneControllerBase> controller_;
 };
 
 }} //namespace

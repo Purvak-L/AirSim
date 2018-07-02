@@ -14,6 +14,15 @@ Cars in AirSim
 
 [![AirSim Car Demo Video](docs/images/car_demo_video.png)](https://youtu.be/gnz1X3UNM5Y)
 
+
+## What's New
+
+* AirSim is now full featured for [multiple vehicles](multi_vehicle.md)!
+* AirSim 1.2 is released! **This version has breaking changes in APIs and settings.json.** Please see [API Upgrade](docs/upgrade_apis.md) and [Settings Upgrade](docs/upgrade_settings.md) docs.
+* We have upgraded to Unreal Engine 4.18 and Visual Studio 2017 (see [upgrade instructions](docs/unreal_upgrade.md))
+
+[List of newly added features](docs/whats_new.md)
+
 ## How to Get It
 
 ### Windows
@@ -25,8 +34,8 @@ Cars in AirSim
 
 ## How to Use It
 
-### Choosing Your Vehicle: Car or Multirotor
-By default AirSim spawns multirotor. You can easily change this to car and use all of AirSim goodies. Please see [using car](docs/using_car.md) guide.
+### Choosing the Mode: Car, Multirotor or ComputerVision
+By default AirSim will prompt you for choosing Car or Multirotor mode. You can use [SimMode setting](docs/settings.md#simmode) to specify the default vehicle or the new [ComputerVision mode](docs/image_apis.md#computer-vision-mode-1).
 
 ### Manual drive
 
@@ -57,11 +66,11 @@ A better way to generate training data exactly the way you want is by accessing 
 
 ### Computer Vision mode
 
-Yet another way to use AirSim is so-called "Computer Vision" mode. In this mode, you don't have vehicle physics and dynamics but you can use keyboard to move around and use APIs to position the vehicle in any arbitrary pose and get images such as depth, disparity, surface normals or object segmentation. 
+Yet another way to use AirSim is so-called "Computer Vision" mode. In this mode, you don't have vehicles or physics. You can use keyboard to move around the scene or use APIs to position available cameras in any arbitrary pose and collect images such as depth, disparity, surface normals or object segmentation. 
 
 [More details](docs/image_apis.md)
 
-### Tutorials
+## Tutorials
 
 - [Video - Setting up AirSim with Pixhawk Tutorial](https://youtu.be/1oY8Qu5maQQ) by Chris Lovett
 - [Video - Using AirSim with Pixhawk Tutorial](https://youtu.be/HNWdYrtw3f0) by Chris Lovett
@@ -69,16 +78,6 @@ Yet another way to use AirSim is so-called "Computer Vision" mode. In this mode,
 - [Reinforcement Learning with AirSim](docs/reinforcement_learning.md) by Ashish Kapoor
 - [The Autonomous Driving Cookbook](https://aka.ms/AutonomousDrivingCookbook) by Microsoft Deep Learning and Robotics Garage Chapter
 - [Using TensorFlow for simple collision avoidance](https://github.com/simondlevy/AirSimTensorFlow) by Simon Levy and WLU team
-
-
-## What's New
-
-* We now have the [car model](docs/using_car.md).
-* No need to build the code. Just download [binaries](https://github.com/Microsoft/AirSim/releases) and you are good to go!
-* The [reinforcement learning example](docs/reinforcement_learning.md) with AirSim
-* New built-in flight controller called [simple_flight](docs/simple_flight.md) that "just works" without any additional setup. It is also now *default*. 
-* AirSim now also generates [depth as well as disparity images](docs/image_apis.md) that is in camera plan. 
-* We also have official Linux build now! If you have been using AirSim with PX4, you might want to read the [release notes](docs/release_notes.md).
 
 ## Participate
 
@@ -98,7 +97,7 @@ More technical details are available in [AirSim paper (FSR 2017 Conference)](htt
 
 ### Contribute
 
-Please take a look at [open issues](https://github.com/microsoft/airsim/issues) and [Trello board](https://trello.com/b/1t2qCeaA/todo) if you are looking for areas to contribute to.
+Please take a look at [open issues](https://github.com/microsoft/airsim/issues) if you are looking for areas to contribute to.
 
 * [More on AirSim design](docs/design.md)
 * [More on code structure](docs/code_structure.md)
