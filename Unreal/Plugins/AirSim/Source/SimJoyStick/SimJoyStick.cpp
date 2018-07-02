@@ -6,7 +6,7 @@
 
 struct SimJoyStick::impl {
 public:
-    void getJoyStickState(unsigned int index, SimJoyStick::State& state, const AxisMaps& maps)
+    void getJoyStickState(int index, SimJoyStick::State& state, const AxisMaps& maps)
     {
         if (index >= kMaxControllers) {
             state.is_initialized = false;
@@ -35,13 +35,13 @@ public:
         state.right_z = getAxisValue(AxisMap::AxisType::RightZ, maps.right_z, di_state, joystick_info.pid_vid);
         state.left_z = getAxisValue(AxisMap::AxisType::LeftZ, maps.left_z, di_state, joystick_info.pid_vid);
 
-        state.slider0 = di_state.slider0;
-        state.slider1 = di_state.slider1;
+        state.slider0 = static_cast<float>(di_state.slider0);
+        state.slider1 = static_cast<float>(di_state.slider1);
 
-        state.pov0 = di_state.pov0;
-        state.pov1 = di_state.pov1;
-        state.pov2 = di_state.pov2;
-        state.pov3 = di_state.pov3;
+        state.pov0 = static_cast<float>(di_state.pov0);
+        state.pov1 = static_cast<float>(di_state.pov1);
+        state.pov2 = static_cast<float>(di_state.pov2);
+        state.pov3 = static_cast<float>(di_state.pov3);
 
         state.pid_vid = joystick_info.pid_vid;
 
@@ -50,6 +50,16 @@ public:
             state.buttons |= ((di_state.buttons[i] & 0x80) == 0 ? 0 : 1) << i;
         }
     }
+
+	void setAutoCenter(int index, double strength) {
+        if (index >= 0)
+		    controllers_[index]->setAutoCenter(strength);
+	}
+
+	void setWheelRumble(int index, double strength) {
+        if (index >= 0)
+    		controllers_[index]->setWheelRumble(strength);
+	}
 
 
 private:
@@ -76,18 +86,20 @@ private:
         else
             rc_axis = map.rc_axis;
 
-
+        float result;
         switch (rc_axis)
         {
-        case AxisMap::AxisType::LeftX: return di_state.x;
-        case AxisMap::AxisType::LeftY: return di_state.y;
-        case AxisMap::AxisType::LeftZ: return di_state.z;
-        case AxisMap::AxisType::RightX: return di_state.rx;
-        case AxisMap::AxisType::RightY: return di_state.ry;
-        case AxisMap::AxisType::RightZ: return di_state.rz;
+        case AxisMap::AxisType::LeftX: result = di_state.x; break;
+        case AxisMap::AxisType::LeftY: result = di_state.y; break;
+        case AxisMap::AxisType::LeftZ: result = di_state.z; break;
+        case AxisMap::AxisType::RightX: result = di_state.rx; break;
+        case AxisMap::AxisType::RightY: result = di_state.ry; break;
+        case AxisMap::AxisType::RightZ: result = di_state.rz; break;
         default:
             throw std::invalid_argument("Unsupported rc_axis in getMappedValue");
         }
+
+        return static_cast<float>(result);
     }
 
     float getAxisValue(AxisMap::AxisType axis_type, const AxisMap& map, const DirectInputJoyStick::JoystickState& di_state, const std::string& device_pid_vid)
@@ -235,17 +247,17 @@ public:
         return val;
     }
 
-    void getJoyStickState(unsigned int index, SimJoyStick::State& state, const AxisMaps& maps)
+    void getJoyStickState(int index, SimJoyStick::State& state, const AxisMaps& maps)
     {
         unused(maps);
 
         static constexpr bool blocking = false;
 
-        //if this is new indec
+        //if this is new index
         if (index != last_index_) {
              //getJoystickInfo(1, manufacturerID, productID, state.message);
 
-            //close previos one
+            //close previous one
             if (fd_ >= 0)
                 close(fd_);
 
@@ -258,7 +270,7 @@ public:
             last_index_ = index;
         }
 
-        //if open was sucessfull
+        //if open was successful
         if (fd_ >= 0) {
             //read the device
             int bytes = read(fd_, &event_, sizeof(event_)); 
@@ -309,6 +321,19 @@ public:
             state.is_valid = false;
     }
 
+    
+	void setAutoCenter(unsigned int index, double strength) {
+        unused(index);
+        unused(strength);
+		//TODO: implement this for linux
+	}
+
+	void setWheelRumble(unsigned int index, double strength) {
+        unused(index);
+        unused(strength);
+		//TODO: implement this for linux
+	}
+
     // bool getJoystickInfo(int index, std::string& manufacturerID, std::string& productID, std::string& message)
     // {
     //     manufacturerID = productID = "";
@@ -346,7 +371,7 @@ public:
     // }
 
 private:
-    unsigned int last_index_ = -1;
+    int last_index_ = -1;
     int fd_ = -1;
     JoystickEvent event_;
     std::string manufacturerID, productID;
@@ -364,7 +389,24 @@ SimJoyStick::~SimJoyStick()
     //required for pimpl
 }
 
-void SimJoyStick::getJoyStickState(unsigned int index, SimJoyStick::State& state)
+void SimJoyStick::getJoyStickState(int index, SimJoyStick::State& state) const
 {
-    pimpl_->getJoyStickState(index, state, axis_maps);
+    if (index < 0) {
+        state.is_initialized = false;
+        state.is_valid = false;
+        return;
+    }
+
+    //TODO: anyway to workaround const_cast?
+    const_cast<SimJoyStick*>(this)->pimpl_->getJoyStickState(index, state, axis_maps);
+}
+
+void SimJoyStick::setAutoCenter(int index, double strength)
+{
+    pimpl_->setAutoCenter(index, strength);
+}
+
+void SimJoyStick::setWheelRumble(int index, double strength)
+{
+    pimpl_->setWheelRumble(index, strength);
 }

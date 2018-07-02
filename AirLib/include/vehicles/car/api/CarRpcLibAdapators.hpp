@@ -50,11 +50,13 @@ public:
     struct CarState {
         float speed;
         int gear;
-        CollisionInfo collision;
-        KinematicsState kinematics_true; //ground truth
+        float rpm;
+        float maxrpm;
+        bool handbrake;
+        KinematicsState kinematics_estimated;
         uint64_t timestamp;
 
-        MSGPACK_DEFINE_MAP(speed, gear, collision, kinematics_true, timestamp);
+        MSGPACK_DEFINE_MAP(speed, gear, rpm, maxrpm, handbrake, kinematics_estimated, timestamp);
 
         CarState()
         {}
@@ -63,14 +65,16 @@ public:
         {
             speed = s.speed;
             gear = s.gear;
-            collision = s.collision;
-            kinematics_true = s.kinematics_true;
+            rpm = s.rpm;
+            maxrpm = s.maxrpm;
+            handbrake = s.handbrake;
             timestamp = s.timestamp;
+            kinematics_estimated = s.kinematics_estimated;
         }
         msr::airlib::CarApiBase::CarState to() const
         {
             return msr::airlib::CarApiBase::CarState(
-                speed, gear, collision.to(), kinematics_true.to(), timestamp);
+                speed, gear, rpm, maxrpm, handbrake, kinematics_estimated.to(), timestamp);
         }
     };
 };
