@@ -1,5 +1,6 @@
 from ModBase import *
-from AirSimClient import *
+import setup_path 
+import airsim
 import copy
 
 class CameraOrientations:

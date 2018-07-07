@@ -1,4 +1,3 @@
-from AirSimClient import *
 from PersistentModules import *
 # CmdBase 
 class CmdBase:

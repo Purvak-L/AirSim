@@ -1,4 +1,5 @@
-from AirSimClient import *
+import setup_path 
+import airsim
 # Persistent ModuleBase
 class PModBase:
     def __init__(self, controller):

@@ -1,4 +1,6 @@
-from AirSimClient import *
+import setup_path 
+import airsim
+
 from DLogTime import *
 from PersistentModules import *
 from Modules import *
@@ -12,7 +14,7 @@ class Controller:
     def __init__(self, persistent_module_classes, persistent_module_helper_classes, 
             module_classes, instant_command_classes, buffered_command_classes):
         # Connect Simulator
-        self.client = MultirotorClient()
+        self.client = airsim.MultirotorClient()
         self.client.confirmConnection()
         self.client.enableApiControl(True)
 

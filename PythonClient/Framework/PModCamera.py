@@ -1,5 +1,6 @@
 from PModBase import *
-from AirSimClient import *  # to remove VSCode warnings
+import setup_path 
+import airsim
 import copy
 
 class Image:

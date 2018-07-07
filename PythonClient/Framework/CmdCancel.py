@@ -1,5 +1,6 @@
 from CmdBase import *
-from AirSimClient import *
+import setup_path 
+import airsim
 from PersistentModules import *
 
 # Cmd

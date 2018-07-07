@@ -1,5 +1,4 @@
 from CmdBase import *
-from AirSimClient import *
 from PersistentModules import *
 
 #Cmd 
